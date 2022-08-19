@@ -285,42 +285,54 @@ pub enum Token {
 pub enum Expression{
     SysFunc(Token, Token), 
     Func(),
-    Math(Token, Token, Token),
-    Assignment(Token, Token),
+    Math(Box<Expression> ,char, Box<Expression>),
+    Assignment(Box<Expression> ,String),
     ParseError(),
-    MathLast(Token, Token)
+    MathLast(Token, Token),
+    Num(f64),
+    Vartype(String),
 } 
 
-pub fn parser(comd: Vec<Token>)->ASTNode{
+fn parsebinop<Item, Container: IntoIterator<Item=Item>>(left: &Expression, right: &Container) -> Expression{
+    
+}
+
+pub fn parser(comd: Vec<Token>)->Expression{
     // let node = ASTNode
     //dbg!(&cmd);
     let mut kword = Token::Keyword("".to_string());
     let mut mathexprs: Vec<Expression> = vec![];
     let mut varname = Token::Keyword("".to_string());
     let mut mathassign = false;
-    let mut iterator = prev_iter::PrevPeekable::new(comd.iter().peekable());
+    let mut iterator = comd.iter().peekable();
     while let Some(token) = iterator.next(){
         //dbg!(token);
         if let Token::Keyword(cmd) = token{
             //dbg!(&cmd);
             if cmd.clone() == "print".to_string(){
-                return ASTNode{content: Expression::SysFunc(token.clone(), iterator.peek().unwrap().clone().clone()), RNode: None, LNode: None};
+                //return Expression::SysFunc(cmd , ())
             } else if cmd.clone() == "let".to_string() || cmd.clone() == "var".to_string(){
                 mathassign = true;
                 dbg!(token);
                 kword = token.clone();
                 varname = iterator.next().unwrap().clone();
-                mathexprs.push(Expression::Assignment(kword, varname));
-            } 
+                if let Token::VarName(vrnm) = varname{
+                    mathexprs.push(Expression::Assignment(Box::new(Expression::Vartype(cmd.clone())), vrnm.clone()));
+                }
+            }
         } else if let Token::Operator(cmdf) = token {
             if  cmdf.clone() == '+' || cmdf.clone() == '-' || cmdf.clone() == '*' || cmdf.clone() == '/' {
-                mathexprs.push(Expression)
+                //mathexprs.push(Expression::Math(iterator.prev_peek().unwrap().clone().clone(), token.clone(), iterator.peek().unwrap().clone().clone()))
+                parsebinop(&mathexprs.last().unwrap().clone(), &iterator);
             }
         }
     }
+    if mathassign{
+            
+    }
     // dbg!(kword);
     // dbg!(varname);
-    return ASTNode{content: Expression::ParseError() , LNode: None, RNode: None}
+    return Expression::Func();
     //node.unwrap()
     // match token {
         //     tok: if tok as String == "print".to_string() => {
@@ -334,12 +346,12 @@ pub fn parser(comd: Vec<Token>)->ASTNode{
 }
 
 //fn calculate()
-#[derive(Debug)]
-pub struct ASTNode{
-    pub content: Expression,
-    pub RNode: Option<Box<ASTNode>>, 
-    pub LNode: Option<Box<ASTNode>>,
-}
+// #[derive(Debug)]
+// pub struct ASTNode{
+//     pub content: Expression,
+//     pub RNode: Option<Box<ASTNode>>, 
+//     pub LNode: Option<Box<ASTNode>>,
+// }
 
 // pub struct ASTTree{
 //     pub content: Token,
