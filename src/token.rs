@@ -2,6 +2,7 @@
 // use std::io::Read;
 // use std::io::{self, BufRead};
 extern crate prev_iter;
+use std::iter::{Peekable, Iterator};
 // fn main() {
 //     let input: String = read!("{}\n");
 //     println!("{}", input);
@@ -288,13 +289,18 @@ pub enum Expression{
     Math(Box<Expression> ,char, Box<Expression>),
     Assignment(Box<Expression> ,String),
     ParseError(),
-    MathLast(Token, Token),
     Num(f64),
     Vartype(String),
 } 
 
-fn parsebinop<Item, Container: IntoIterator<Item=Item>>(left: &Expression, right: &Container) -> Expression{
-    
+fn parsebinop<'a, iter: Iterator<Item=&'a Token>>(left: &Expression, right: & mut Peekable<iter>) -> Expression{
+    let nxtel = right.peek().unwrap().clone();
+    dbg!(left);
+    dbg!(nxtel.clone());
+    if let nxtel = Token::Number(0){
+
+    }
+    Expression::Func()
 }
 
 pub fn parser(comd: Vec<Token>)->Expression{
@@ -323,7 +329,7 @@ pub fn parser(comd: Vec<Token>)->Expression{
         } else if let Token::Operator(cmdf) = token {
             if  cmdf.clone() == '+' || cmdf.clone() == '-' || cmdf.clone() == '*' || cmdf.clone() == '/' {
                 //mathexprs.push(Expression::Math(iterator.prev_peek().unwrap().clone().clone(), token.clone(), iterator.peek().unwrap().clone().clone()))
-                parsebinop(&mathexprs.last().unwrap().clone(), &iterator);
+                let xpr = parsebinop(&mathexprs.last().unwrap().clone(), &mut iterator);
             }
         }
     }
