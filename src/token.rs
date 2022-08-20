@@ -288,31 +288,38 @@ pub enum Expression{
     Func(),
     Math(Box<Expression> ,char, Box<Expression>),
     Assignment(Box<Expression> ,String),
+    Eqls(Box<Expression>, Box<Expression>),
     ParseError(),
     Num(f64),
     Vartype(String),
 } 
 
-fn parsebinop<'a, iter: Iterator<Item=&'a Token>>(left: &Expression, right: & mut Peekable<iter>) -> Expression{
+fn parsebinop<'a, iter: Iterator<Item=&'a Token>>(left: &Expression, right: & mut prev_iter::PrevPeekable<iter>, cur: Token) -> Expression {
+    let prevel = right.prev_peek().unwrap().clone();
     let nxtel = right.peek().unwrap().clone();
-    dbg!(left);
+    dbg!(prevel.clone());
     dbg!(nxtel.clone());
-    if let nxtel = Token::Number(0){
-
+    if let Token::Number(num) = prevel{
+        if let Token::Number(num2) = nxtel {
+            if let Token::Operator(op) = cur{
+                return Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::Num(num.clone())), op, Box::new(Expression::Num(num2.clone())))))
+            }
+        }
     }
-    Expression::Func()
+    return Expression::Func();
 }
 
 pub fn parser(comd: Vec<Token>)->Expression{
     // let node = ASTNode
     //dbg!(&cmd);
+    let mut numscount = 7;
     let mut kword = Token::Keyword("".to_string());
     let mut mathexprs: Vec<Expression> = vec![];
     let mut varname = Token::Keyword("".to_string());
     let mut mathassign = false;
-    let mut iterator = comd.iter().peekable();
+    let mut iterator = prev_iter::PrevPeekable::new(comd.iter().peekable());
     while let Some(token) = iterator.next(){
-        //dbg!(token);
+        //dbg
         if let Token::Keyword(cmd) = token{
             //dbg!(&cmd);
             if cmd.clone() == "print".to_string(){
@@ -324,13 +331,15 @@ pub fn parser(comd: Vec<Token>)->Expression{
                 varname = iterator.next().unwrap().clone();
                 if let Token::VarName(vrnm) = varname{
                     mathexprs.push(Expression::Assignment(Box::new(Expression::Vartype(cmd.clone())), vrnm.clone()));
+                    numscount = 1;
                 }
             }
         } else if let Token::Operator(cmdf) = token {
-            if  cmdf.clone() == '+' || cmdf.clone() == '-' || cmdf.clone() == '*' || cmdf.clone() == '/' {
+            if cmdf.clone() == '+' || cmdf.clone() == '-' || cmdf.clone() == '/' || cmdf.clone() == '*' {
                 //mathexprs.push(Expression::Math(iterator.prev_peek().unwrap().clone().clone(), token.clone(), iterator.peek().unwrap().clone().clone()))
-                let xpr = parsebinop(&mathexprs.last().unwrap().clone(), &mut iterator);
-            }
+                let xpr = parsebinop(&mathexprs.last().unwrap().clone(), &mut iterator, token.clone());
+                return xpr;
+            } 
         }
     }
     if mathassign{
