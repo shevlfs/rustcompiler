@@ -289,40 +289,57 @@ pub enum Expression{
     Math(Box<Expression> ,char, Box<Expression>),
     Assignment(Box<Expression> ,String),
     Eqls(Box<Expression>, Box<Expression>),
-    Literal(String), 
+    Literal(String),
     ParseError(),
     Num(f64),
     VarName(String),
     Vartype(String),
 } 
 
-fn parsebinop<'a, iter: Iterator<Item=&'a Token>>(left: &Expression, right: & mut prev_iter::PrevPeekable<iter>, cur: &Token, opscount: &i32) -> Expression {
+fn parsebinop<'a, iter: Iterator<Item=&'a Token>>(left: &Expression, right: &mut prev_iter::PrevPeekable<iter>, cur: &Token, opscount: &mut i32) -> Expression {
     let prevel = right.prev_peek().unwrap().clone();
     let nxtel = right.peek().unwrap().clone();
-    dbg!(prevel.clone());
-    dbg!(nxtel.clone());
-    if let Token::Number(num) = prevel{
-        if let Token::Number(num2) = nxtel {
-            if let Token::Operator(op) = cur{
-                return Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::Num(num.clone())), op.clone(), Box::new(Expression::Num(num2.clone())))))
+    //dbg!(prevel.clone());
+    //dbg!(nxtel.clone());
+    if opscount.clone() == 1 {
+        if let Token::Number(num) = prevel{
+            if let Token::Number(num2) = nxtel {
+                if let Token::Operator(op) = cur{
+                    return Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::Num(num.clone())), op.clone(), Box::new(Expression::Num(num2.clone())))))
+                }
+            } else if let Token::VarName(vrname) = nxtel {
+                if let Token::Operator(op) = cur{
+                    return Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::Num(num.clone())), op.clone(), Box::new(Expression::VarName(vrname.to_string())))))
+                }
             }
-        } else if let Token::VarName(vrname) = nxtel {
-            if let Token::Operator(op) = cur{
-                return Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::Num(num.clone())), op.clone(), Box::new(Expression::VarName(vrname.to_string())))))
-            }
+        } else if let Token::VarName(vrname) = prevel{
+            if let Token::Number(num2) = nxtel {
+                if let Token::Operator(op) = cur{
+                    return Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::VarName(vrname.to_string())), op.clone(), Box::new(Expression::Num(num2.clone())))))
+                }
+            } else if let Token::VarName(vrname2) = nxtel{
+                if let Token::Operator(op) = cur{
+                    return Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::VarName(vrname.to_string())), op.clone(), Box::new(Expression::VarName(vrname2.to_string())))))
+                }
+            }   
         }
-    } else if let Token::VarName(vrname) = prevel{
-        if let Token::Number(num2) = nxtel {
-            if let Token::Operator(op) = cur{
-                return Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::VarName(vrname.to_string())), op.clone(), Box::new(Expression::Num(num2.clone())))))
-            }
-        } else if let Token::VarName(vrname2) = nxtel{
-            if let Token::Operator(op) = cur{
-                return Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::VarName(vrname.to_string())), op.clone(), Box::new(Expression::VarName(vrname2.to_string())))))
+    } else {
+        if let Token::Number(num) = prevel{
+            if let Token::Number(num2) = nxtel {
+                if let Token::Operator(op) = cur{
+                    *opscount -= 1;
+                    right.next();
+                    let newiter = right;
+                    if  newiter.peek().is_some(){
+                        let newel = newiter.next().unwrap().clone();
+                        return parsebinop(&Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::Num(num.clone())), op.clone(), Box::new(Expression::Num(num2.clone()))))), newiter, &newel, opscount);
+                    } else {
+                        return Expression::Math(Box::new(left.clone()), op.clone(),Box::new(Expression::Num(*num2)));
+                    }
+                    }
             }
         }
     }
-
     return Expression::Func();
 }
 
@@ -361,7 +378,7 @@ pub fn parser(comd: Vec<Token>)->Expression{
             if cmdf.clone() == '+' || cmdf.clone() == '-' || cmdf.clone() == '/' || cmdf.clone() == '*' {
                 //mathexprs.push(Expression::Math(iterator.prev_peek().unwrap().clone().clone(), token.clone(), iterator.peek().unwrap().clone().clone()))
                 
-                let xpr = parsebinop(&mathexprs.last().unwrap().clone(), &mut iterator, token, &opscount);
+                let xpr = parsebinop(&mathexprs.last().unwrap().clone(), &mut iterator, token, &mut opscount);
                 return xpr;
             } 
         }
