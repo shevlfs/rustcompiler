@@ -284,11 +284,12 @@ pub enum Token {
 
 #[derive(Debug, Clone)]
 pub enum Expression{
-    SysFunc(Token, Token), 
+    Stdout(Box<Expression>), 
     Func(),
     Math(Box<Expression> ,char, Box<Expression>),
     Assignment(Box<Expression> ,String),
     Eqls(Box<Expression>, Box<Expression>),
+    Literal(String), 
     ParseError(),
     Num(f64),
     Vartype(String),
@@ -320,10 +321,12 @@ pub fn parser(comd: Vec<Token>)->Expression{
     let mut iterator = prev_iter::PrevPeekable::new(comd.iter().peekable());
     while let Some(token) = iterator.next(){
         //dbg
-        if let Token::Keyword(cmd) = token{
+        if let Token::Keyword(cmd, ) = token{
             //dbg!(&cmd);
             if cmd.clone() == "print".to_string(){
-                //return Expression::SysFunc(cmd , ())
+                if let Token::Word(content) = iterator.peek().unwrap().clone(){
+                    return Expression::Stdout(Box::new(Expression::Literal(content.to_string())));
+            }
             } else if cmd.clone() == "let".to_string() || cmd.clone() == "var".to_string(){
                 mathassign = true;
                 dbg!(token);
