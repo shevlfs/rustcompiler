@@ -1,18 +1,5 @@
-// #[macro_use] extern crate text_io;
-// use std::io::Read;
-// use std::io::{self, BufRead};
 extern crate prev_iter;
 use std::iter::{Peekable, Iterator};
-// fn main() {
-//     let input: String = read!("{}\n");
-//     println!("{}", input);
-//     let linesplit = tokenize(input);
-//     for cmd in linesplit.iter(){
-//         for token in cmd.iter(){
-//             println!("{:?}", token);
-//         }
-//     }
-// }
 
 
 
@@ -21,10 +8,6 @@ pub fn tokenize(content: String) -> Vec<Vec<Token>> {
     let mut curword = Vec::new();
     let linesplit: Vec<String> = content.split(";").map(|s| s.to_string()).collect();
     for line in linesplit.iter(){
-        // if line.contains("print") && line.chars().nth(0) == 'p'{
-        //     code.push(vec![Token::keyword("print".to_string())]);
-        //     code.last().clone().unwrap().push(line.trim_start_matches("print").trim_matches('"').to_string());
-        // }
         let mut varletfound = false; 
         if line.trim().starts_with("var"){
             varletfound = true;
@@ -296,7 +279,7 @@ pub enum Expression{
     Vartype(String),
 } 
 
-fn parsebinop<'a, iter: Iterator<Item=&'a Token>>(left: &Expression, right: &mut prev_iter::PrevPeekable<iter>, cur: &Token, opscount: &mut i32) -> Expression {
+fn parsebinop<'a, iter: Iterator<Item=&'a Token>>(left: &Expression, right: &mut prev_iter::PrevPeekable<iter>, cur: &Token, opscount: &mut i32, multdiv: bool) -> Expression {
     let prevel = right.prev_peek().unwrap().clone();
     let nxtel = right.peek().unwrap().clone();
     //dbg!(prevel.clone());
@@ -332,7 +315,14 @@ fn parsebinop<'a, iter: Iterator<Item=&'a Token>>(left: &Expression, right: &mut
                     let newiter = right;
                     if  newiter.peek().is_some(){
                         let newel = newiter.next().unwrap().clone();
-                        return parsebinop(&Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::Num(num.clone())), op.clone(), Box::new(Expression::Num(num2.clone()))))), newiter, &newel, opscount);
+                        if !multdiv{
+                            return parsebinop(&Expression::Eqls(Box::new(left.clone()), Box::new(Expression::Math(Box::new(Expression::Num(num.clone())), op.clone(), Box::new(Expression::Num(num2.clone()))))), newiter, &newel, opscount, multdiv);
+                        } else {
+                            if op.clone() == '*' {
+                                //return parsebinop(&Expression)
+                            }
+                        }
+
                     } else {
                         return Expression::Math(Box::new(left.clone()), op.clone(),Box::new(Expression::Num(*num2)));
                     }
@@ -349,9 +339,13 @@ pub fn parser(comd: Vec<Token>)->Expression{
     let mut numscount = 7;
     let mut mathexprs: Vec<Expression> = vec![];
     let mut opscount = 0;
+    let mut multdiv = false;
     for command in comd.clone(){
         if let Token::Operator(op) = command {
             opscount += 1;
+            if op == '*' {
+                multdiv = true;
+            }
         }
     }
     let mut mathassign = false;
@@ -378,7 +372,7 @@ pub fn parser(comd: Vec<Token>)->Expression{
             if cmdf.clone() == '+' || cmdf.clone() == '-' || cmdf.clone() == '/' || cmdf.clone() == '*' {
                 //mathexprs.push(Expression::Math(iterator.prev_peek().unwrap().clone().clone(), token.clone(), iterator.peek().unwrap().clone().clone()))
                 
-                let xpr = parsebinop(&mathexprs.last().unwrap().clone(), &mut iterator, token, &mut opscount);
+                let xpr = parsebinop(&mathexprs.last().unwrap().clone(), &mut iterator, token, &mut opscount, multdiv);
                 return xpr;
             } 
         }
