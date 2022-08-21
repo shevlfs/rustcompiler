@@ -342,12 +342,15 @@ pub fn parser(comd: Vec<Token>)->Expression{
     let mut multdiv = false;
     for command in comd.clone(){
         if let Token::Operator(op) = command {
-            opscount += 1;
+            if op != '='{
+                opscount = opscount + 1;
+            }
             if op == '*' {
                 multdiv = true;
             }
         }
     }
+    println!("opscount - {}",opscount.clone());
     let mut mathassign = false;
     let mut iterator = prev_iter::PrevPeekable::new(comd.iter().peekable());
     while let Some(token) = iterator.next(){
@@ -371,9 +374,17 @@ pub fn parser(comd: Vec<Token>)->Expression{
         } else if let Token::Operator(cmdf) = token {
             if cmdf.clone() == '+' || cmdf.clone() == '-' || cmdf.clone() == '/' || cmdf.clone() == '*' {
                 //mathexprs.push(Expression::Math(iterator.prev_peek().unwrap().clone().clone(), token.clone(), iterator.peek().unwrap().clone().clone()))
-                
-                let xpr = parsebinop(&mathexprs.last().unwrap().clone(), &mut iterator, token, &mut opscount, multdiv);
-                return xpr;
+                if opscount == 1 {
+                    if let Token::Number(numprev) = iterator.prev_peek().unwrap() {
+                        if let Token::Number(numnext ) = iterator.peek().unwrap() {
+                            return Expression::Eqls(Box::new(mathexprs.last().unwrap().clone()), Box::new(Expression::Math(Box::new(Expression::Num(numprev.clone())), cmdf.clone(), Box::new(Expression::Num(numnext.clone())) )));
+                        }
+                    }
+                } else {
+                    opscount = opscount + 1;
+                    let xpr = parsebinop(&mathexprs.last().unwrap().clone(), &mut iterator, token, &mut opscount, multdiv);
+                    return xpr;
+                }
             } 
         }
     }
